@@ -35,32 +35,31 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  if (to.name !== 'Login' && to.name !== 'Register') {
-    let response;
+  if (to.name !== 'Login' && to.name !== 'Register' && to.name !== 'Profile') {
     try {
-      response = await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
+      await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
         withCredentials: true
       });
     } catch(e) {
-      return next({ name: 'Login' });
+      if (to.name !== 'Profile') return next({ name: 'Login' });
     }
 
-    if (response.status === 200) {
-      return next();
-    }
-
-    return next({ name: 'Login' });
-  }
-
-  try {
-    await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
-      withCredentials: true
-    });
-  } catch(_) {
     return next();
   }
-  
-  return next({ name: 'Home' });
+
+  if (to.name === 'Login' || to.name === 'Register') {
+    try {
+      await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
+        withCredentials: true
+      });
+    } catch(_) {
+      return next();
+    }
+    
+    return next({ name: 'Home' });
+  }
+
+  next();
 });
 
 export default router;
