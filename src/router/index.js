@@ -5,6 +5,9 @@ import Index from '@/pages/Index';
 import Register from '@/pages/auth/Register';
 import Login from '@/pages/auth/Login';
 import Profile from '@/pages/profile/Index';
+import Posts from '@/pages/profile/Posts';
+import Followers from '@/pages/profile/Followers';
+import Following from '@/pages/profile/Following';
 
 const routes = [
   {
@@ -25,7 +28,25 @@ const routes = [
   {
     path: '/:username',
     component: Profile,
-    name: 'Profile'
+    children: [
+      {
+        path: '/:username',
+        component: Posts,
+        name: 'Profile'
+      },
+      {
+        path: '/:username/posts',
+        component: Posts
+      },
+      {
+        path: '/:username/followers',
+        component: Followers
+      },
+      {
+        path: '/:username/following',
+        component: Following
+      }
+    ]
   }
 ];
 

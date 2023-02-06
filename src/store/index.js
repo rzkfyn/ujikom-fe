@@ -2,6 +2,7 @@ import { createStore } from 'vuex';
 import axios from 'axios';
 import jwtDecode from 'jwt-decode';
 
+const axiosInstance = axios.create();
 const store = createStore({
   state() {
     return {
@@ -10,7 +11,8 @@ const store = createStore({
       accessToken: {
         token: '', exp: ''
       },
-      currentUser: {}
+      currentUser: {},
+      axiosInstance
     }
   },
   mutations: {
@@ -37,9 +39,8 @@ const store = createStore({
         throw e;
       }
 
-      const { data } = response.data;
-      const { user } = data;
-      commit('setCurrentUser', user);
+      const { data } = response.data;      
+      commit('setCurrentUser', data);
     },
     async getAccessToken({ commit, state }) {
       try {
@@ -57,6 +58,27 @@ const store = createStore({
       }
     }
   }
+});
+
+axiosInstance.interceptors.request.use(async (config) => {
+  try {
+    const currentDate = + new Date();
+    if (store.state.accessToken.exp >= currentDate) {
+      config.headers.Authorization = `Bearer ${store.state.accessToken.token}`;
+    } else {
+      const response = await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
+        withCredentials: true
+      });
+      const { data } = response.data;
+      const { access_token } = data;
+      const { exp } = jwtDecode(access_token);
+
+      config.headers.Authorization = `Bearer ${access_token}`;
+      store.commit('setAccessToken', { token: access_token, exp });
+    }
+  } catch(_) {
+  }
+  return config;
 });
 
 export default store;
