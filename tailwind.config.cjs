@@ -2,10 +2,15 @@
 module.exports = {
   content: [
     './index.html',
-    './src/**/*.vue'
+    './src/**/*.vue',
+    './src/pages/**/*.vue'
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        'open-sans': ['Open Sans', 'sans-serif']
+      }
+    },
   },
   plugins: [],
 }
