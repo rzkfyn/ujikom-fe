@@ -43,8 +43,9 @@ const store = createStore({
       commit('setCurrentUser', data);
     },
     async getAccessToken({ commit, state }) {
+      let response;
       try {
-        const response = await axios.get(`${state.apiBaseURL}/v1/auth/refresh-token`, {
+        response = await axios.get(`${state.apiBaseURL}/v1/auth/refresh-token`, {
           withCredentials: true
         });
         const { data } = response.data;
@@ -52,10 +53,11 @@ const store = createStore({
         const decoded = jwtDecode(access_token);
         const { exp } = decoded;
         commit('setAccessToken', { token: access_token, exp });
-        state.login = true;
-      } catch(e) {
-        throw e;
+      } catch(_) {
+        state.login = false;
       }
+
+      if (response.status === 200) state.login = true;
     }
   }
 });
@@ -66,6 +68,7 @@ axiosInstance.interceptors.request.use(async (config) => {
     if (store.state.accessToken.exp >= currentDate) {
       config.headers.Authorization = `Bearer ${store.state.accessToken.token}`;
     } else {
+      if (!store.state.login) return config;
       const response = await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
         withCredentials: true
       });
@@ -77,6 +80,7 @@ axiosInstance.interceptors.request.use(async (config) => {
       store.commit('setAccessToken', { token: access_token, exp });
     }
   } catch(_) {
+    return config;
   }
   return config;
 });
