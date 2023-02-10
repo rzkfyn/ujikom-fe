@@ -17,7 +17,10 @@ const handleFormSubmit = async (ev) => {
     response = await axios.post(`${store.state.apiBaseURL}/v1/auth/login`, {
       uid: uid.value, password: password.value
     },{
-      withCredentials: true
+      withCredentials: true,
+      headers: {
+        'ngrok-skip-browser-warning': true
+      }
     });
   } catch(e) {
     const { data } = e.response;
@@ -30,12 +33,12 @@ const handleFormSubmit = async (ev) => {
   store.commit('setAccessToken', true);
 
   return router.push({ name: 'Home' });
-}
+};
 </script>
 
 <template>
   <div class="flex justify-center items-center min-h-screen">
-    <div class="p-6 max-w-sm rounded-md shadow">
+    <div class="p-6 max-w-sm rounded-md shadow bg-white">
       <div class="text-center">
         <h3 class="text-2xl font-semibold text-neutral-600">Sign In</h3>
         <p class="text-[.75em] text-neutral-400 mt-1">Welcome back! Fill the details below to sign in to your account</p>

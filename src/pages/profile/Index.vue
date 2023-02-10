@@ -12,8 +12,11 @@ import UpdateProfileAboutModal from '@/components/profile/modal/UpdateProfileAbo
 import UpdateProfileImageModal from '@/components/profile/modal/UpdateProfileImageModal';
 import UpdateCoverImageModal from '@/components/profile/modal/UpdateCoverImageModal';
 import Posts from '@/components/profile/Posts';
-import Followers from '../../components/profile/Followers.vue';
-import Following from '../../components/profile/Following.vue';
+import Followers from '@/components/profile/Followers';
+import Following from '@/components/profile/Following';
+import LeftBar from '@/components/LeftBar';
+import RightBar from '@/components/RightBar';
+import MediaOnly from '../../components/profile/MediaOnly.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -26,6 +29,9 @@ const showUpdateProfileAboutModal = ref(false);
 const showUpdateProfileImageModal = ref(false);
 const showUpdateCoverImageModal = ref(false);
 const user = ref({});
+const isMe = ref(false);
+const isBlockedMe = ref(false);
+const isBlockedByMe = ref(false);
 const toggleShowUpdateProfileImageModal = () => {
   showUpdateProfileImageModal.value = !showUpdateProfileImageModal.value;
   if (!showUpdateProfileImageModal.value) profileImage.value = `${store.state.apiBaseURL}/media/images/profile_images/${store.state.currentUser.profile.profile_image.file_name}`;
@@ -38,14 +44,18 @@ const toggleShowUpdateCoverImageModal = () => {
 };
 const profileAboutUpdateFinishedHandler = async () => {
   showUpdateProfileAboutModal.value = false;
-  await getUser();
+  await rerfreshData();
 };
 const profileImageUpdateFinishedHandler = async () => {
   showUpdateProfileImageModal.value = false;
-  await getUser();
+  await rerfreshData();
 };
 const coverImageUpdateFinishedHandler = async () => {
   showUpdateCoverImageModal.value = false;
+  await rerfreshData();
+};
+const rerfreshData = async () => {
+  await store.dispatch('getCurrentUser');
   await getUser();
 };
 const getUser = async () => {
@@ -70,23 +80,31 @@ onMounted(async () => {
     await store.dispatch('getAccessToken');
   } catch(_) {
   }
-  if (!store.state.currentUser.username) {
+  if (store.state.accessToken.token) {
     try {
       await store.dispatch('getCurrentUser');
-    } catch(_) { 
-      
+    } catch(_) {
     }
   }
 
   username.value = route.params.username;
   await getUser();
-  isDataReady.value = true;
+  isMe.value = user.value.username === store.state.currentUser.username;
   document.querySelector('title').innerText = `${user.value.name ? `${user.value.name} (${username.value})` : username.value}`
+  isDataReady.value = true;
 });
 
 watch(route, async () => {
   username.value = route.params.username;
   await getUser();
+});
+
+watch(user, (val) => {
+  isMe.value = val?.username === store.state.currentUser.username;
+  const blockedByMeIndex = val.blocker.findIndex(({ id }) => id === store.state.currentUser.id);
+  const blockedMeIndex = val.blocking.findIndex(({ id }) => id === store.state.currentUser.id);
+  isBlockedByMe.value = blockedByMeIndex > -1;
+  isBlockedMe.value = blockedMeIndex > -1;
 });
 </script>
 
@@ -102,33 +120,46 @@ watch(route, async () => {
         </div>
       </template>
     </TopBar>
-    <div class="flex min-h-screen px-8">
-      <div class="rounded shadow w-6/12 relative mt-8" v-if="isDataReady">
-        <CoverImage :user="user" :isUserExist="isUserExist" @updateCoverImageBtn:click="toggleShowUpdateCoverImageModal"/>
+    <div class="flex min-h-screen px-8 justify-between" v-if="isDataReady">
+      <LeftBar />
+      <div class="shadow w-7/12 relative mt-16 bg-white mr-2 rounded-md" v-if="isDataReady">
+        <CoverImage :user="user" :isMe="isMe" :isUserExist="isUserExist" @updateCoverImageBtn:click="toggleShowUpdateCoverImageModal"/>
         <div class="px-3 flex justify-between">
-          <ProfileTop :user="user" :isUserExist="isUserExist" @updateProfileImageBtn:click="toggleShowUpdateProfileImageModal" />
-          <ProfileMenuToggler :user="user" @updateProfileAboutBtn:click="toggleShowUpdateProfileAboutModal" />
+          <ProfileTop :user="user" :isMe="isMe" :isUserExist="isUserExist" @updateProfileImageBtn:click="toggleShowUpdateProfileImageModal" />
+          <ProfileMenuToggler :user="user" :isMe="isMe" @updateProfileAboutBtn:click="toggleShowUpdateProfileAboutModal" />
         </div>
         <div class="px-4 mt-3" v-if="isUserExist">
-          <ProfileInfo :user="user" />
+          <ProfileInfo :user="user" :isBlockedByMe="isBlockedByMe" :isBlockedMe="isBlockedMe"/>
         </div>
-        <ManageUser v-if="!user?.isMe && isUserExist" :user="user" :getUser="getUser"/>
-        <div class="mt-3 relative" v-if="isUserExist">
-          <div class="absolute left-0 right-0 py-3 px-4 border-t border-b" v-if="!user.isBlockedByMe && !user.isBlockedMe">
+        <ManageUser v-if="!isMe && isUserExist" :user="user" :getUser="getUser" :isBlockedByMe="isBlockedByMe" :isBlockedMe="isBlockedMe"/>
+        <div class="mt-3 sticky top-[54px] z-10" v-if="isUserExist">
+          <div class="absolute left-0 bg-white/90 right-0 py-3 px-4 border-t border-b" v-if="!isBlockedByMe && !isBlockedMe">
             <ul class="flex justify-start">
-                <li class="mr-5 font-semibold text-neutral-700 cursor-pointer hover:text-neutral-300 transition-all duration-300" @click="router.push(`/${username}/posts`)">Posts</li>
-                <li class="mr-5 font-semibold text-neutral-500 cursor-pointer hover:text-neutral-300 transition-all duration-300" @click="router.push(`/${username}/posts`)">About</li>
-                <li class="mr-5 font-semibold text-neutral-500 cursor-pointer hover:text-neutral-300 transition-all duration-300" @click="router.push(`/${username}/posts`)">Media</li>
+                <li @click="() => router.push(`/${username}/posts`)"
+                  :class="`mr-10 font-semibold cursor-pointer hover:text-neutral-300 transition-all duration-300 ${route.path.replace(/\//g, '').endsWith('posts') || route.path.replace(/\//g, '').endsWith(username)  ? 'text-neutral-700' : 'text-neutral-500'}`" 
+                >Posts</li>
+                <li @click="() => router.push(`/${username}/about`)"
+                  :class="`mr-10 font-semibold cursor-pointer hover:text-neutral-300 transition-all duration-300 ${route.path.replace(/\//g, '').endsWith('about') ? 'text-neutral-700' : 'text-neutral-500'}`" 
+                >About</li>
+                <li @click="() => router.push(`/${username}/media`)"
+                  :class="`mr-10 font-semibold cursor-pointer hover:text-neutral-300 transition-all duration-300 ${route.path.replace(/\//g, '').endsWith('media') ? 'text-neutral-700' : 'text-neutral-500'}`" 
+                >Media</li>
               </ul>
           </div>
         </div>
         <div>
-          <Posts :user="user" v-if="route.path === `/${user.username}` || route.path === `/${user.username}/` || route.path === `/${user.username}/posts`" />
+          <Posts :user="user" :isBlockedByMe="isBlockedByMe" :isBlockedMe="isBlockedMe" 
+            v-if="route.path === `/${user.username}` || route.path === `/${user.username}/` || route.path === `/${user.username}/posts`" 
+          />
+          <MediaOnly :user="user" :isBlockedByMe="isBlockedByMe" :isBlockedMe="isBlockedMe" 
+            v-if="route.path === `/${user.username}/media`"
+          />
           <Followers v-if="route.path === `/${user.username}/followers`" />
           <Following v-if="route.path === `/${user.username}/following`" />
         </div>
       </div>
-      <div v-if="user.isMe">
+      <RightBar/>
+      <div v-if="isMe">
         <UpdateProfileAboutModal 
           :visible="showUpdateProfileAboutModal" 
           @cancelbtn:click="toggleShowUpdateProfileAboutModal" 

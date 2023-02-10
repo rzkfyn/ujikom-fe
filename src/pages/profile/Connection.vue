@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import TopBar from '@/components/Topbar';
+import LeftBar from '@/components/LeftBar';
 import Followers from '@/components/profile/Followers';
 import Following from '@/components/profile/Following';
 
@@ -11,7 +12,6 @@ const route = useRoute();
 const store = useStore();
 const isDataReady = ref(false);
 const { username } = route.params;
-console.log(username);
 const user = ref({});
 const getUser = async () => {
   let response;
@@ -41,17 +41,18 @@ onMounted(async () => {
   <div>
     <TopBar :isDataReady="isDataReady">
       <template #default>
-        <div class="flex items-center">
-          <div class="text-neutral-700 text-2xl mr-4 cursor-pointer" @click="router.push(`/${user.username}`)">
+        <div class="text-neutral-700 text-2xl mr-4 cursor-pointer flex items-center" @click="router.push(`/${user.username}`)">
+          <div class="flex items-center">
             <i class="bi bi-arrow-left"></i>
           </div>
-          <div class="text-neutral-800 text-sm">{{ user.name }}'s connection</div>
+          <div class="text-neutral-800 text-sm ml-3">{{ user.name }}'s connection</div>
         </div>
       </template>
     </TopBar>
-    <div class="flex px-8">
-      <div class="rounded shadow w-6/12 relative min-h-screen mt-12" v-if="isDataReady">
-        <div class="px-3 pb-2 border pt-6 rounded">
+    <div class="flex px-8" v-if="isDataReady">
+      <LeftBar />
+      <div class="shadow w-6/12 relative min-h-screen mt-16 rounded-md bg-white">
+        <div class="px-12 pb-3 border pt-6 rounded">
           <ul class="flex justify-between px-3">
             <li 
               :class="`${route.path.match('/followers') ? 'text-neutral-600 underline decoration-neutral-400' : 'text-neutral-400'} mr-5 font-semibold cursor-pointer hover:text-neutral-500 transition-all duration-300 w-6/12`" @click="router.push(`/${username}/followers`)"
