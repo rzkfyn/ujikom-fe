@@ -71,23 +71,23 @@ axiosInstance.interceptors.request.use(async (config) => {
 });
 
 onMounted(async () => {
-  if (!store.state.currentUser.username) {
-    try {
-      store.dispatch('getCurrentUser');
-    } catch(_) { }
-  }
+  try {
+    await store.dispatch('getAccessToken');
+    await store.dispatch('getCurrentUser');
+  } catch(_) { }
 
-  coverImage.value = `${store.state.apiBaseURL}/media/images/cover_images/${store.state.currentUser.profile.profile_media.cover_image.file_name}`;
+  coverImage.value = `${store.state.apiBaseURL}/media/images/cover_images/${store.state.currentUser.profile.profile_media.find(({ context }) => context === 'COVER_IMAGE').file_name ?? 'default.png'}`;
 });
 </script>
 
 <template>
-  <div class="flex justify-center items-center fixed right-0 left-0 bottom-0 top-0 bg-neutral-800/40" v-if="visible">
+  <div class="flex justify-center items-center fixed right-0 left-0 bottom-0 top-0 bg-neutral-800/40 z-50" v-if="visible">
     <div class="bg-white p-4 rounded shadow w-6/12 min-w-[250px]">
       <div>
         <h4 class="text-neutral-700 font-semibold">Change Your Profile's Cover Image</h4>
       </div>
-      <div class="mx-auto w-10/12 h-48 rounded-lg shadow mt-3 overflow-hidden bg-cover bg-no-repeat" :style="`background-image: url(${coverImage});`">
+      <div class="mx-auto w-10/12 h-48 rounded-lg shadow mt-3 overflow-hidden bg-cover bg-no-repeat">
+        <img :src="coverImage" alt="cover image" class="w-full h-full object-cover object-center">
       </div>
       <form @submit="formSubmitHandler">
         <div class="text-center mt-4">

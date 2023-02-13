@@ -71,18 +71,17 @@ axiosInstance.interceptors.request.use(async (config) => {
 });
 
 onMounted(async () => {
-  if (!store.state.currentUser.username) {
-    try {
-      store.dispatch('getCurrentUser');
-    } catch(_) { }
-  }
+  try {
+    await store.dispatch('getAccessToken');
+    await store.dispatch('getCurrentUser');
+  } catch(_) { }
 
-  profileImage.value = `${store.state.apiBaseURL}/media/images/profile_images/${store.state.currentUser.profile.profile_media.profile_image.file_name}`;
+  profileImage.value = `${store.state.apiBaseURL}/media/images/profile_images/${store.state.currentUser.profile.profile_media.find(({ context }) => context === 'PROFILE_IMAGE').file_name ?? 'default.png'}`;
 });
 </script>
 
 <template>
-  <div class="flex justify-center items-center fixed right-0 left-0 bottom-0 top-0 bg-neutral-800/40" v-if="visible">
+  <div class="flex justify-center items-center fixed right-0 left-0 bottom-0 top-0 bg-neutral-800/40 z-50" v-if="visible">
     <div class="bg-white p-4 rounded shadow w-3/12 min-w-[250px]">
       <div>
         <h4 class="text-neutral-700 font-semibold">Change profile image</h4>

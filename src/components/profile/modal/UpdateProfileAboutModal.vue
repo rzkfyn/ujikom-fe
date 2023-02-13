@@ -13,12 +13,11 @@ defineProps({
 });
 
 const emit = defineEmits(['cancelbtn:click', 'profileaboutupdate:finished']);
-const router = useRouter();
 const store = useStore();
-const axiosInstance = axios.create();
 const name = ref('');
 const bio = ref('');
 const location = ref('');
+const url = ref('');
 const hideModal = () => {
   emit('cancelbtn:click');
 };
@@ -27,8 +26,8 @@ const formSubmitHandler = async (ev) => {
 
   let response;
   try {
-    response = await axiosInstance.put(`${store.state.apiBaseURL}/v1/users/profile`, {
-      name: name.value, bio: bio.value, location: location.value
+    response = await store.state.axiosInstance.put(`${store.state.apiBaseURL}/v1/users/profile`, {
+      name: name.value, bio: bio.value, location: location.value, url: url.value, date_of_birth: store.state.currentUser.profile.date_of_birth
     }, {
       headers: {
         'Authorization': `Bearer ${store.state.accessToken.token}`
@@ -39,30 +38,12 @@ const formSubmitHandler = async (ev) => {
     console.log(data.message)
   }
 
-  if (response.status === 200) emit('profileaboutupdate:finished');
+
+  if (response.status === 200) {
+    emit('profileaboutupdate:finished')
+    await store.dispatch('getCurrenUser');
+  };
 };
-
-axiosInstance.interceptors.request.use(async (config) => {
-  try {
-    const currentDate = + new Date();
-    if (store.state.accessToken.exp >= currentDate) {
-      config.headers.Authorization = `Bearer ${store.state.accessToken.token}`;
-    } else {
-      const response = await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
-        withCredentials: true
-      });
-      const { data } = response.data;
-      const { access_token } = data;
-      const { exp } = jwtDecode(access_token);
-
-      config.headers.Authorization = `Bearer ${access_token}`;
-      store.commit('setAccessToken', { token: access_token, exp });
-    }
-  } catch(_) {
-    return router.push({ name: 'Login' });
-  }
-  return config;
-});
 
 onMounted(async () => {
   if (!store.state.currentUser.userName) {
@@ -74,12 +55,12 @@ onMounted(async () => {
   name.value = store.state.currentUser.name
   bio.value = store.state.currentUser.profile.bio;
   location.value = store.state.currentUser.profile.location;
+  url.value = store.state.currentUser.profile.url;
 });
-
 </script>
 
 <template>
-  <div class="flex justify-center items-center fixed right-0 left-0 bottom-0 top-0 bg-neutral-800/40" v-if="visible">
+  <div class="flex justify-center items-center fixed right-0 left-0 bottom-0 top-0 bg-neutral-800/40 z-50" v-if="visible">
     <div class="bg-white p-4 rounded shadow w-5/12 min-w-[250px]">
       <div>
         <h4 class="text-neutral-700 font-semibold">Update Your Profile About</h4>
@@ -89,19 +70,25 @@ onMounted(async () => {
           <div class="mb-4">
             <label for="name" class="mb-1">Name</label>
             <input type="text" name="name" id="name" v-model="name"
-            class="w-full rounded focus:outline-none border border-neutral-300 text-sm px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"
+              class="w-full rounded focus:outline-none border border-neutral-300 text-sm px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"
             >
           </div>
           <div class="mb-4">
             <label for="location" class="mb-1">Location</label>
             <input type="text" name="location" id="location" v-model="location"
-            class="w-full rounded focus:outline-none border border-neutral-300 text-sm px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"
+              class="w-full rounded focus:outline-none border border-neutral-300 text-sm px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"
+            >
+          </div>
+          <div class="mb-4">
+            <label for="url" class="mb-1">Url</label>
+            <input type="text" name="url" id="url" v-model="url"
+              class="w-full rounded focus:outline-none border border-neutral-300 text-sm px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"            
             >
           </div>
           <div class="mb-4">
             <label for="location" class="mb-1">Bio</label>
             <textarea type="text" name="location" id="location" v-model="bio" rows="5"
-            class="w-full rounded focus:outline-none border border-neutral-300 text-sm resize-none px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"
+              class="w-full rounded focus:outline-none border border-neutral-300 text-sm resize-none px-2 py-1 text-neutral-500 focus:ring-1 focus:ring-indigo-400"
             ></textarea>
           </div>
           <span class="block bg-neutral-400 w-full h-[2px] rounded-full mt-1 mb-3"></span> 
