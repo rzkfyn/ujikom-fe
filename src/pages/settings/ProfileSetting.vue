@@ -1,11 +1,11 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import UpdateProfileImageModal from '@/components/profile/modal/UpdateProfileImageModal';
 import UpdateCoverImageModal from '@/components/profile/modal/UpdateCoverImageModal';
+import FloatingMessage from '@/components/FloatingMessage';
 
-const route = useRoute();
 const router = useRouter();
 const store = useStore();
 const isDataReady = ref(false);
@@ -17,9 +17,22 @@ const url = ref(null);
 const bio = ref(null);
 const dateOfBirth = ref('');
 const showChangesWarn = ref(false);
-const toggleShowChangesWarn = () => showChangesWarn.value = !showChangesWarn.value;
 const toggleShowUpdateCoverImageModal = () => showUpdateCoverImageModal.value = !showUpdateCoverImageModal.value;
 const toggleShowUpdateProfileImageModal = () => showUpdateProfileImageModal.value = !showUpdateProfileImageModal.value;
+const showFloatingMessage = ref(false);
+const floatingMessageType = ref('');
+const floatingMessage = ref('');
+const triggerFloatingMessage = (message, type) => {
+  setTimeout(() => {
+    floatingMessage.value = message;
+    floatingMessageType.value = type;
+    showFloatingMessage.value = true;
+  
+    setTimeout(() => {
+      showFloatingMessage.value = false;
+    }, 1300);
+  }, 300);
+};
 const profileImageUpdateFinishedHandler = async () => {
   showUpdateProfileImageModal.value = false;
   await store.dispatch('getCurrentUser');
@@ -28,11 +41,10 @@ const coverImageUpdateFinishedHandler = async () => {
   showUpdateCoverImageModal.value = false;
   await store.dispatch('getCurrentUser');
 };
-const formSubmitHandler = async (ev) => {
-  ev.preventDefault();
-
+const updateProfile = async () => {
+  let response;
   try {
-    await store.state.axiosInstance.put(`${store.state.apiBaseURL}/v1/users/profile`, {
+    response = await store.state.axiosInstance.put(`${store.state.apiBaseURL}/v1/users/profile`, {
       name: name.value,
       location: location.value,
       url: url.value,
@@ -44,15 +56,37 @@ const formSubmitHandler = async (ev) => {
       }
     });
   } catch(e) {
-    return console.log(e);
+    triggerFloatingMessage(e.response.data.message, 'error');
+    return showChangesWarn.value = false;
   }
 
-  await store.dispatch('getCurrentUser');
+  if (response.status === 200) {
+    triggerFloatingMessage('Profile updated successfully', 'success');
+    await store.dispatch('getCurrentUser');
+    showChangesWarn.value = false;
+  };
 };
 const checkIsDataChanges = () => {
   let result = false;
+
+  if ((name.value?.trim() === '' ? null : name.value) !== store.state.currentUser.name) result = true;
+  if ((location.value?.trim() === '' ? null : location.value) !== store.state.currentUser.profile.location) result = true;
+  if ((url.value?.trim() === '' ? null : url.value) !== store.state.currentUser.profile.url) result = true;
+  if ((bio.value?.trim() === '' ? null : bio.value) !== store.state.currentUser.profile.bio) result = true;
+  const birthDate = new Date(store.state.currentUser.profile.date_of_birth);
+  if (dateOfBirth.value !== `${birthDate.getFullYear()}-${birthDate.getMonth() + 1}-${birthDate.getDate()}`) result = true;
+
+  return result;
 };
-onMounted(async () => {
+const resetValue = () => {
+  name.value = store.state.currentUser.name;
+  location.value = store.state.currentUser.profile.location;
+  url.value = store.state.currentUser.profile.url;
+  bio.value = store.state.currentUser.profile.bio;
+  const birthDate = new Date(store.state.currentUser.profile.date_of_birth);
+  dateOfBirth.value = `${birthDate.getFullYear()}-${birthDate.getMonth() + 1}-${birthDate.getDate()}`;
+};
+onMounted(async () => {  
   try {
     await store.dispatch('getAccessToken');
     if (!store.state.currentUser.username) await store.dispatch('getCurrentUser');
@@ -67,8 +101,13 @@ onMounted(async () => {
   const birthDate = new Date(store.state.currentUser.profile.date_of_birth);
   dateOfBirth.value = `${birthDate.getFullYear()}-${birthDate.getMonth() + 1}-${birthDate.getDate()}`;
   isDataReady.value = true;
-
-  // document.addEventListener('click', () => toggleShowChangesWarn());
+});
+watch(() => [name.value, location.value, url.value, bio.value, dateOfBirth.value], () => {
+  if (checkIsDataChanges()) {
+    showChangesWarn.value = true;
+  } else {
+    showChangesWarn.value = false;
+  }
 });
 </script>
 
@@ -78,9 +117,9 @@ onMounted(async () => {
       <p>Your Profile</p>
     </div>
     <span class="block w-full rounded-full h-[1px] bg-neutral-200 mt-2 mb-3"></span>
-    <div :class="`flex justify-between mt-5  ${showChangesWarn ? 'pb-32' : ''}`">
+    <div :class="`flex justify-between mt-5  ${showChangesWarn ? 'pb-16' : ''}`">
       <div class="w-7/12 pr-8" v-if="isDataReady">
-        <form @submit="formSubmitHandler">
+        <form>
           <div class="mb-4">
             <label for="name" class="text-neutral-600 font-semibold block">Name</label>
             <input type="text" name="name" id="name" v-model="name"
@@ -177,20 +216,29 @@ onMounted(async () => {
       </div>
     </div>
     <div 
-      :class="`transition-all origin-bottom sticky duration-300 flex right-10 left-10 justify-between items-center bg-white rounded border border-neutral-300 py-4 px-5 shadow z-20 bottom-20 ${showChangesWarn ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`"
+      :class="`transition-all origin-bottom sticky duration-300 flex right-10 left-10 justify-between items-center bg-white rounded border border-neutral-300 py-4 px-5 shadow z-20 bottom-20 ${showChangesWarn ? 'translate-y-8 opacity-100' : 'translate-y-10 opacity-0'}`"
     >
       <div>
         <h4 class="text-neutral-600 font-semibold text-md">Careful, you have unsaved changes!</h4>
       </div>
       <div class="flex items-center">
         <div>
-          <button class="text-red-400 border border-red-300 px-3 py-1 rounded-lg">Reset</button>
+          <button @click="resetValue"
+            class="text-red-400 border border-red-300 px-3 py-1 rounded-lg"
+          >Reset</button>
         </div>
         <div class="ml-5">
-          <button class="bg-green-500 px-3 py-1 rounded-md text-white">Save Changes</button>
+          <button @click="updateProfile"
+            class="bg-green-500 px-3 py-1 rounded-md text-white"
+          >Save Changes</button>
         </div>
       </div>
     </div>
+    <FloatingMessage 
+      :visible="showFloatingMessage" 
+      :message="floatingMessage" 
+      :type="floatingMessageType"
+    />
     <UpdateProfileImageModal
       :visible="showUpdateProfileImageModal"
       @cancelbtn:click="toggleShowUpdateProfileImageModal"
