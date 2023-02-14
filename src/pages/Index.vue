@@ -3,11 +3,12 @@ import { useStore } from 'vuex';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import TopBar from '@/components/TopBar';
 import Main from '@/components/main/Main';
-import Notifications from '@/components/main/Notifications';
+import TopBar from '@/components/TopBar';
 import LeftBar from '@/components/LeftBar';
 import RightBar from '@/components/RightBar';
+import Notifications from '@/components/main/Notifications';
+import SavedPosts from '@/components/main/SavedPosts';
 
 const route = useRoute();
 const store = useStore();
@@ -31,6 +32,7 @@ onMounted(async () => {
       <div class="shadow-xl w-7/12 bg-white mt-16 rounded-md min-h-screen" v-if="isDataReady">
         <Main :isDataReady="isDataReady" v-if="route.path.replace(/\//g, '') === ''" />
         <Notifications :isDataReady="isDataReady" v-if="route.path.replace(/\//g, '') === 'notifications'" />
+        <SavedPosts :isDataReady="isDataReady" v-if="route.path.replace(/\//g, '') === 'saved'" />
       </div>
       <div>
       </div>
