@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import Post from '@/components/Post';
 
@@ -7,6 +7,14 @@ const props = defineProps({
   user: {
     type: Object,
     default: {}
+  },
+  isBlockedMe: {
+    type: Boolean,
+    default: false
+  },
+  isBlockedByMe: {
+    type: Boolean,
+    default: false
   }
 });
 const store = useStore();
@@ -36,7 +44,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div v-if="user.isBlockedMe" class="pr-4 pl-6 text-xl text-neutral-600 text-start mt-6 border-t pt-6">
+    <div v-if="isBlockedMe" class="pr-4 pl-6 text-xl text-neutral-600 text-start mt-6 border-t pt-16">
       <p class="font-semibold text-2xl">
         You're <span class="text-red-600">BLOCKED</span>
       </p>
@@ -44,7 +52,7 @@ onMounted(async () => {
         You can't see {{ user.username }}'s posts.
       </p>
     </div>
-    <div v-else-if="user.isBlockedByMe" class="pr-4 pl-6 text-xl text-neutral-600 text-start mt-6 border-t pt-6">
+    <div v-else-if="isBlockedByMe" class="pr-4 pl-6 text-xl text-neutral-600 text-start mt-6 border-t pt-6 pb-8">
       <p class="font-semibold text-2xl">
         You <span class="text-red-600">BLOCKED</span> @{{ user.username }}.
       </p>
@@ -61,13 +69,13 @@ onMounted(async () => {
           </div>
         </div>
         <div v-else>
-          <Post v-for="post, i in userPosts" :key="i" :post="post" :user="user"/>
+          <Post v-for="post, i in userPosts" :key="i" :post="post"/>
         </div>
       </div>
       <div v-if="!isUserExist">
         <div class="flex items-center justify-center text-2xl mt-8 pt-12 border-t">
           <p class="text-neutral-700">
-            User with username <span class="text-neutral-500">{{ username }}</span> is not found.
+            User <span class="text-neutral-500">{{ username }}</span> not found.
           </p>
         </div>
       </div>

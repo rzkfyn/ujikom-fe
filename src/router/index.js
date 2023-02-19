@@ -5,9 +5,10 @@ import Index from '@/pages/Index';
 import Register from '@/pages/auth/Register';
 import Login from '@/pages/auth/Login';
 import Profile from '@/pages/profile/Index';
-import Posts from '@/pages/profile/Posts';
-import Followers from '@/pages/profile/Followers';
-import Following from '@/pages/profile/Following';
+import Connection from '@/pages/profile/Connection';
+import Setting from '@/pages/settings/Index';
+import ProfileSetting from '@/pages/settings/ProfileSetting';
+import VerifyEmail from '@/pages/auth/VerifyEmail';
 
 const routes = [
   {
@@ -16,14 +17,47 @@ const routes = [
     name: 'Home'
   },
   {
+    path: '/login',
+    component: Login,
+    name: 'Login'
+  },
+  {
     path: '/register',
     component: Register,
     name: 'Register'
   },
   {
-    path: '/login',
-    component: Login,
-    name: 'Login'
+    path: '/verifyemail/:code?',
+    component: VerifyEmail,
+    name: 'VerifyEmail'
+  },
+  {
+    path: '/notifications',
+    component: Index,
+    name: 'Notification'
+  },
+  {
+    path: '/saved',
+    component: Index,
+    name: 'SavedPosts'
+  },
+  {
+    path: '/settings',
+    component: Setting,
+    children: [
+      {
+        path: '/settings',
+        component: ProfileSetting
+      },
+      {
+        path: '/settings/profile',
+        component: ProfileSetting
+      },
+      {
+        path: '/settings/account',
+        component: ProfileSetting
+      }
+    ]
   },
   {
     path: '/:username',
@@ -31,23 +65,31 @@ const routes = [
     children: [
       {
         path: '/:username',
-        component: Posts,
+        component: Profile,
         name: 'Profile'
       },
       {
         path: '/:username/posts',
-        component: Posts
+        component: Profile,
       },
       {
-        path: '/:username/followers',
-        component: Followers
+        path: '/:username/about',
+        component: Profile,
       },
       {
-        path: '/:username/following',
-        component: Following
+        path: '/:username/media',
+        component: Profile,
       }
     ]
-  }
+  },
+  {
+    path: '/:username/followers',
+    component: Connection
+  },
+  {
+    path: '/:username/following',
+    component: Connection
+  },
 ];
 
 const router = createRouter({
@@ -56,7 +98,7 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  if (to.name !== 'Login' && to.name !== 'Register' && to.name !== 'Profile') {
+  if (to.name !== 'Login' && to.name !== 'Register' && to.name !== 'Profile' && to.name !== 'Home' && to.name !== 'VerifyEmail') {
     try {
       await axios.get(`${store.state.apiBaseURL}/v1/auth/refresh-token`, {
         withCredentials: true
