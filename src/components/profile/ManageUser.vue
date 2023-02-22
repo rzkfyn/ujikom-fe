@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { nanoid } from 'nanoid';
+import ConfirmationPrompt from '@/components/ConfirmationPrompt';
 
 const props = defineProps({
   user: {
@@ -45,7 +46,7 @@ const followBtnClickHandler = async () => {
 
   if (response.status === 200) await props.getUser();
 };
-const unfollowBtnClickHandler = async () => {
+const unfollowUser = async () => {
   let response;
   try {
     response = await store.state.axiosInstance.get(`${store.state.apiBaseURL}/v1/users/${props.user.username}/unfollow`, {
@@ -77,8 +78,27 @@ const unblockUser = async () => {
 
   await props.getUser();
 };
-
-
+const confirmationPromptHeader = ref('');
+const confirmationPromptMessage = ref('');
+const showConfirmationPrompt = ref(false);
+const confirmationPromptOnYes = ref(() => null);
+const confirmButtonText = ref('');
+const fireConfirmationPrompt = (header, message, buttonText, onYes) => {
+  confirmationPromptHeader.value = header;
+  confirmationPromptMessage.value = message;
+  confirmationPromptOnYes.value = onYes;
+  confirmButtonText.value = buttonText;
+  showConfirmationPrompt.value = true;
+};
+const confirmUnfollowUser = () => {
+  fireConfirmationPrompt(
+    `Unfollow @${props.user.username}?`,
+    `Are you sure want to unfollow @${props.user.username}? We will notify @${props.user.name} that you unfollow them`,
+    'Unfollow',
+    unfollowUser
+  );
+};
+const confirmationPromptOnCloseHandler = () => showConfirmationPrompt.value = false;
 onMounted(() => {
   document.addEventListener('click', (ev) => {
     const target = ev.target;
@@ -86,7 +106,6 @@ onMounted(() => {
     showMenu.value = false;
   });
 });
-
 </script>
 
 <template>
@@ -101,7 +120,7 @@ onMounted(() => {
       <button v-if="!isBlockedByMe && !isFollowedByMe && !isBlockedMe" @click="followBtnClickHandler" :title="store.state.login ? 'follow user' : 'login to follow user'"
         class="text-[.8em] text-white py-1 px-3 rounded-full shadow bg-indigo-500 hover:bg-indigo-400 hover:text-neutral-300"
       >Follow</button>
-      <button v-else-if="!isBlockedMe && isFollowedByMe" @click="unfollowBtnClickHandler" class="text-[.8em] text-white py-1 px-3 rounded-xl shadow bg-neutral-500 hover:bg-neutral-400 hover:text-neutral-300">Unfollow</button>
+      <button v-else-if="!isBlockedMe && isFollowedByMe" @click="confirmUnfollowUser" class="text-[.8em] text-white py-1 px-3 rounded-xl shadow bg-neutral-500 hover:bg-neutral-400 hover:text-neutral-300">Unfollow</button>
     </div>
     <div class="relative">
       <div @click="toggleShowMenu" :class="`group flex items-center py-2 px-3 rounded-2xl border-neutral-500 cursor-pointer ${togglerClass}`">
@@ -109,7 +128,7 @@ onMounted(() => {
         <span class="block w-[5px] h-[5px] bg-neutral-700 rounded-full ml-2"></span>
         <span class="block w-[5px] h-[5px] bg-neutral-700 rounded-full ml-2"></span>
       </div>
-      <div v-if="showMenu" :class="`absolute bg-white rounded shadow-md border border-neutral-200 top-2 whitespace-nowrap left-6 p-2 select-none z-10`">
+      <div v-if="showMenu" :class="`absolute bg-white rounded shadow-md border border-neutral-200 top-2 whitespace-nowrap left-6 p-2 select-none z-20`">
         <ul class="text-neutral-600">
           <li v-if="!isBlockedByMe" @click="blockUser" class="transition-all flex items-center hover:text-neutral-600 p-1 text-neutral-500 text-sm rounded cursor-pointer hover:bg-neutral-100">
             <i class="bi bi-person-x text-base"></i>
@@ -121,6 +140,15 @@ onMounted(() => {
           </li>
         </ul>
       </div>
+    </div>
+    <div v-if="showConfirmationPrompt">
+      <ConfirmationPrompt 
+        :header="confirmationPromptHeader"
+        :message="confirmationPromptMessage"
+        :confirmButtonText="confirmButtonText"
+        :onYes="confirmationPromptOnYes"
+        @close="confirmationPromptOnCloseHandler"
+      />
     </div>
   </div>
 </template>
