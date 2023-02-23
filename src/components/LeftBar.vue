@@ -58,7 +58,7 @@ onMounted(async () => {
           class="w-12 h-12 overflow-hidden rounded-full cursor-pointer"
         >
           <img :src="`${store.state.apiBaseURL}/media/images/profile_images/${store.state.currentUser.profile.profile_media.find(({ context }) => context === 'PROFILE_IMAGE').file_name ?? 'default.png'}`" alt="profile"
-            class="w-full h-full object-cover object-center"
+            class="w-full h-full object-fill object-center"
           >
         </div>
         <div class="flex flex-col justify-center ml-3">

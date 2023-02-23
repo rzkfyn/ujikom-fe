@@ -23,7 +23,9 @@ const getConnectionRecommendations = async () => {
 
 onMounted(async () => {
   try {
-    await getConnectionRecommendations();
+    if (store.state.login) {
+      await getConnectionRecommendations();
+    }
   } catch(_) {  }
 });
 </script>
